@@ -108,4 +108,4 @@ chmod 755 ~/bin/ollama-search
 
 ## License
 
-MIT
+[MIT](LICENSE)
