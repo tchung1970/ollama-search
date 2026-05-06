@@ -13,7 +13,7 @@ A shell script to search [Ollama](https://ollama.com) models, browse available t
 
 - `bash`
 - `curl`
-- `python3` (standard library only)
+- `python3` (standard library only) — used for URL encoding, HTML parsing, and model recommendation logic
 - `awk`
 
 ## Usage
