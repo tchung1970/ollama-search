@@ -22,17 +22,11 @@ A shell script to search [Ollama](https://ollama.com) models, browse available t
 ollama-search <keyword>
 ```
 
-### Examples
-
-```bash
-ollama-search gemma
-ollama-search llama
-ollama-search gpt-oss
-```
-
-## Example Output
+### Example
 
 ```
+$ ollama-search gemma
+
 Search
 ------
 https://ollama.com/search?q=gemma
