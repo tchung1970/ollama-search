@@ -4,7 +4,7 @@ A shell script to search [Ollama](https://ollama.com) models, browse available t
 
 ## Features
 
-- Search ollama.com for models by keyword
+- Search ollama.com for models by keyword (only shows models whose names start with the query)
 - Interactively choose from up to 10 results
 - Display available model tags with size and context window
 - Detect system memory and recommend the best-fit model (with a 60% safety margin)
@@ -39,10 +39,11 @@ https://ollama.com/search?q=gemma
 
 Found models
 ------------
- 1) gemma3
+ 1) gemma4
  2) gemma3n
- 3) gemma2
- ...
+ 3) gemma3
+ 4) gemma2
+ 5) gemma
 
 Choose model number [1] or q to exit: 1
 
