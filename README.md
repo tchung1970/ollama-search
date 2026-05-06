@@ -45,36 +45,38 @@ Found models
  4) gemma2
  5) gemma
 
-Choose model number [1] or q to exit: 1
+Choose model number [1] or q to exit:
 
 Selected model
 --------------
-gemma3
-https://ollama.com/library/gemma3
+gemma4
+https://ollama.com/library/gemma4
 
 Models
 ------
 Name                               Size     Context
 ---------------------------------- -------- --------
-gemma3:1b (latest)                 815MB    32K
-gemma3:4b                          3.3GB    128K
-gemma3:12b                         8.1GB    128K
-gemma3:27b                         17GB     128K
+gemma4:latest                      9.6GB    128K
+gemma4:e2b                         7.2GB    128K
+gemma4:e4b (latest)                9.6GB    128K
+gemma4:26b                         18GB     256K
+gemma4:31b                         20GB     256K
+gemma4:31b-cloud                   -        256K
 
 System Memory
 -------------
-Memory: 32GB
+Memory: 8GB
 
 Suggested model
 ---------------
-Recommended: gemma3:12b
-Size       : 8.1GB
-Context    : 128K
+Recommended: gemma4:31b-cloud
+Size       : -
+Context    : 256K
 Reason     : Selected based on your system memory with a safety margin.
 
 To run it
 ---------
-  ollama run gemma3:12b
+  ollama run gemma4:31b-cloud
 ```
 
 ## How the recommendation works
