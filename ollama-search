@@ -367,7 +367,7 @@ if [ -n "$RECOMMENDED_TAG" ]; then
     echo "Context    : $MODEL_CONTEXT"
   fi
 
-  echo "Reason     : Selected based on your system memory with a safety margin."
+  echo "Reason     : Based on your ${MEM_GB}GB system memory, I recommend $RECOMMENDED_TAG."
   echo
   echo "To run it"
   echo "---------"
