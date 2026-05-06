@@ -3,7 +3,7 @@
 # ollama-search
 # Search Ollama models, choose a model, then show model details
 # Recommend best local model based on system memory
-# by Thomas Chung
+# by Thomas Chung, 2026
 #
 
 BASE_URL="https://ollama.com"
