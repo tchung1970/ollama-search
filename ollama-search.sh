@@ -1,0 +1,375 @@
+#!/bin/bash
+#
+# ollama-search.sh
+# Search Ollama models, choose a model, then show model details
+# Recommend best local model based on system memory
+# by Thomas Chung
+#
+
+BASE_URL="https://ollama.com"
+SEARCH_URL="${BASE_URL}/search"
+MAX_RESULTS=10
+
+if [ -z "$1" ]; then
+  echo
+  echo "Usage:"
+  echo "  ollama-search.sh <keyword>"
+  echo
+  echo "Example:"
+  echo "  ollama-search.sh gemma"
+  echo "  ollama-search.sh gpt-oss"
+  echo
+  exit 1
+fi
+
+QUERY="$*"
+
+ENCODED_QUERY=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote_plus(" ".join(sys.argv[1:])))' "$@")
+SEARCH_PAGE="${SEARCH_URL}?q=${ENCODED_QUERY}"
+
+TMP_SEARCH=$(mktemp)
+TMP_MODEL=$(mktemp)
+TMP_ROWS=$(mktemp)
+
+cleanup() {
+  rm -f "$TMP_SEARCH" "$TMP_MODEL" "$TMP_ROWS"
+}
+
+trap cleanup EXIT
+
+curl -fsSL "$SEARCH_PAGE" -o "$TMP_SEARCH"
+
+if [ $? -ne 0 ]; then
+  echo
+  echo "ERROR: Failed to search Ollama."
+  echo "URL: $SEARCH_PAGE"
+  echo
+  exit 1
+fi
+
+echo
+echo "Search"
+echo "------"
+echo "$SEARCH_PAGE"
+echo
+
+MODELS=$(python3 - "$TMP_SEARCH" "$MAX_RESULTS" <<'PY'
+import sys
+import re
+import html
+
+filename = sys.argv[1]
+max_results = int(sys.argv[2])
+
+with open(filename, "r", encoding="utf-8", errors="ignore") as f:
+    text = f.read()
+
+text = html.unescape(text)
+
+models = []
+
+for match in re.finditer(r'/library/([A-Za-z0-9._-]+)', text):
+    model = match.group(1)
+
+    if model not in models:
+        models.append(model)
+
+    if len(models) >= max_results:
+        break
+
+for model in models:
+    print(model)
+PY
+)
+
+if [ -z "$MODELS" ]; then
+  echo "No models found."
+  echo
+  exit 0
+fi
+
+echo "Found models"
+echo "------------"
+
+COUNT=0
+
+while read -r MODEL_NAME; do
+  COUNT=$((COUNT + 1))
+  printf "%2d) %s\n" "$COUNT" "$MODEL_NAME"
+done <<< "$MODELS"
+
+echo
+
+if [ "$COUNT" -eq 1 ]; then
+  SELECTED_MODEL="$MODELS"
+else
+  echo -n "Choose model number [1] or q to exit: "
+  read -r CHOICE
+
+  if [ -z "$CHOICE" ]; then
+    CHOICE=1
+  fi
+
+  if [[ "$CHOICE" =~ ^[Qq]$ ]]; then
+    echo
+    echo "Exit."
+    echo
+    exit 0
+  fi
+
+  if ! [[ "$CHOICE" =~ ^[0-9]+$ ]]; then
+    echo
+    echo "ERROR: Invalid selection."
+    echo
+    exit 1
+  fi
+
+  if [ "$CHOICE" -lt 1 ] || [ "$CHOICE" -gt "$COUNT" ]; then
+    echo
+    echo "ERROR: Selection out of range."
+    echo
+    exit 1
+  fi
+
+  SELECTED_MODEL=$(echo "$MODELS" | sed -n "${CHOICE}p")
+fi
+
+MODEL_PAGE="${BASE_URL}/library/${SELECTED_MODEL}"
+
+curl -fsSL "$MODEL_PAGE" -o "$TMP_MODEL"
+
+if [ $? -ne 0 ]; then
+  echo
+  echo "ERROR: Failed to read Ollama model page."
+  echo "URL: $MODEL_PAGE"
+  echo
+  exit 1
+fi
+
+echo
+echo "Selected model"
+echo "--------------"
+echo "$SELECTED_MODEL"
+echo "$MODEL_PAGE"
+
+echo
+echo "Models"
+echo "------"
+
+python3 - "$SELECTED_MODEL" "$TMP_MODEL" "$TMP_ROWS" <<'PY'
+import sys
+import re
+import html
+
+model = sys.argv[1]
+filename = sys.argv[2]
+rows_file = sys.argv[3]
+
+with open(filename, "r", encoding="utf-8", errors="ignore") as f:
+    text = f.read()
+
+text = html.unescape(text)
+
+model_re = re.compile(rf"{re.escape(model)}:[A-Za-z0-9._-]+")
+
+tags = []
+
+for match in model_re.finditer(text):
+    tag = match.group(0)
+
+    if tag not in tags:
+        tags.append(tag)
+
+rows = []
+
+for tag in tags:
+    idx = text.find(tag)
+    window = text[idx:idx + 5000]
+
+    size = "-"
+    context = "-"
+    is_latest = False
+
+    if re.search(r"\blatest\b", window[:1200], re.I):
+        is_latest = True
+
+    size_match = re.search(r">\s*([0-9]+(?:\.[0-9]+)?\s*(?:MB|GB|TB))\s*<", window, re.I)
+    if size_match:
+        size = size_match.group(1).replace(" ", "")
+
+    context_match = re.search(r">\s*([0-9]+K)\s*<", window, re.I)
+    if context_match:
+        context = context_match.group(1)
+
+    rows.append((tag, is_latest, size, context))
+
+print(f"{'Name':<34} {'Size':<8} {'Context':<8}")
+print(f"{'-' * 34} {'-' * 8} {'-' * 8}")
+
+seen = set()
+clean_rows = []
+
+for tag, is_latest, size, context in rows:
+    if tag in seen:
+        continue
+
+    seen.add(tag)
+
+    name = f"{tag} (latest)" if is_latest and tag != f"{model}:latest" else tag
+
+    print(f"{name:<34} {size:<8} {context:<8}")
+    clean_rows.append((tag, is_latest, size, context))
+
+if not clean_rows:
+    print("No model tags found.")
+
+with open(rows_file, "w", encoding="utf-8") as f:
+    for tag, is_latest, size, context in clean_rows:
+        f.write(f"{tag}\t{int(is_latest)}\t{size}\t{context}\n")
+PY
+
+echo
+echo "System Memory"
+echo "-------------"
+
+MEM_GB=0
+
+if command -v sysctl >/dev/null 2>&1; then
+  MEM_BYTES=$(sysctl -n hw.memsize 2>/dev/null)
+
+  if [ -n "$MEM_BYTES" ]; then
+    MEM_GB=$(python3 -c "print(round($MEM_BYTES / 1024 / 1024 / 1024))")
+    echo "Memory: ${MEM_GB}GB"
+  else
+    echo "Memory: unknown"
+  fi
+else
+  echo "Memory: unknown"
+fi
+
+echo
+echo "Suggested model"
+echo "---------------"
+
+RECOMMENDED_TAG=$(python3 - "$SELECTED_MODEL" "$TMP_ROWS" "$MEM_GB" <<'PY'
+import sys
+import re
+
+model = sys.argv[1]
+rows_file = sys.argv[2]
+mem_gb = int(sys.argv[3])
+
+def size_to_gb(size):
+    if size == "-" or not size:
+        return None
+
+    m = re.match(r"^([0-9]+(?:\.[0-9]+)?)(MB|GB|TB)$", size, re.I)
+    if not m:
+        return None
+
+    value = float(m.group(1))
+    unit = m.group(2).upper()
+
+    if unit == "MB":
+        return value / 1024
+    if unit == "GB":
+        return value
+    if unit == "TB":
+        return value * 1024
+
+    return None
+
+rows = []
+
+with open(rows_file, "r", encoding="utf-8") as f:
+    for line in f:
+        parts = line.rstrip("\n").split("\t")
+        if len(parts) != 4:
+            continue
+
+        tag, latest, size, context = parts
+        size_gb = size_to_gb(size)
+
+        rows.append({
+            "tag": tag,
+            "latest": latest == "1",
+            "size": size,
+            "size_gb": size_gb,
+            "context": context,
+        })
+
+local_rows = [
+    row for row in rows
+    if row["size_gb"] is not None
+    and "-cloud" not in row["tag"]
+    and not row["tag"].endswith(":latest")
+]
+
+cloud_rows = [
+    row for row in rows
+    if "-cloud" in row["tag"]
+]
+
+if mem_gb <= 0:
+    latest = next((row for row in rows if row["latest"] and not row["tag"].endswith(":latest")), None)
+    if latest:
+        print(latest["tag"])
+    elif rows:
+        print(rows[0]["tag"])
+    sys.exit(0)
+
+# Keep a safety margin for macOS and other apps.
+# A local model is considered comfortable if model file size is <= 60% of total memory.
+safe_limit = mem_gb * 0.60
+
+safe_local = [
+    row for row in local_rows
+    if row["size_gb"] <= safe_limit
+]
+
+if safe_local:
+    # Choose the largest safe local model.
+    safe_local.sort(key=lambda row: row["size_gb"])
+    print(safe_local[-1]["tag"])
+    sys.exit(0)
+
+if cloud_rows:
+    # If local models are too large, prefer the smallest cloud model.
+    print(cloud_rows[0]["tag"])
+    sys.exit(0)
+
+if local_rows:
+    # Last fallback: choose the smallest local model.
+    local_rows.sort(key=lambda row: row["size_gb"])
+    print(local_rows[0]["tag"])
+    sys.exit(0)
+
+if rows:
+    print(rows[0]["tag"])
+PY
+)
+
+if [ -n "$RECOMMENDED_TAG" ]; then
+  echo "Recommended: $RECOMMENDED_TAG"
+
+  MODEL_SIZE=$(awk -F '\t' -v tag="$RECOMMENDED_TAG" '$1 == tag {print $3}' "$TMP_ROWS")
+  MODEL_CONTEXT=$(awk -F '\t' -v tag="$RECOMMENDED_TAG" '$1 == tag {print $4}' "$TMP_ROWS")
+
+  if [ -n "$MODEL_SIZE" ]; then
+    echo "Size       : $MODEL_SIZE"
+  fi
+
+  if [ -n "$MODEL_CONTEXT" ]; then
+    echo "Context    : $MODEL_CONTEXT"
+  fi
+
+  echo "Reason     : Selected based on your system memory with a safety margin."
+  echo
+  echo "To run it"
+  echo "---------"
+  echo "  ollama run $RECOMMENDED_TAG"
+else
+  echo "No recommendation available."
+fi
+
+echo
