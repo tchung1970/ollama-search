@@ -91,6 +91,13 @@ The script recommends the **largest model that fits comfortably in memory** usin
 
 For example, on an 8GB system where all local gemma4 models exceed the safe limit (4.8GB), the script automatically falls back to `gemma4:31b-cloud` so you still get the most capable model without running out of memory.
 
+| Memory | Safe limit (60%) | Typical fit |
+|---|---|---|
+| 8GB | 4.8GB | Small models only; falls back to cloud |
+| 16GB | 9.6GB | Medium models (7B–8B) |
+| 32GB | 19.2GB | Large models (13B–20B) |
+| 64GB | 38.4GB | Very large models (30B+) |
+
 ## Installation
 
 ```bash
