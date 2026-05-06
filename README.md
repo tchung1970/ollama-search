@@ -59,18 +59,18 @@ gemma4:31b-cloud                   -        256K
 
 System Memory
 -------------
-Memory: 8GB
+Memory: 16GB
 
 Suggested model
 ---------------
-Recommended: gemma4:31b-cloud
-Size       : -
-Context    : 256K
-Reason     : Based on your 8GB system memory, I recommend gemma4:31b-cloud.
+Recommended: gemma4:e4b
+Size       : 9.6GB
+Context    : 128K
+Reason     : Based on your 16GB system memory, I recommend gemma4:e4b.
 
 To run it
 ---------
-  ollama run gemma4:31b-cloud
+  ollama run gemma4:e4b
 ```
 
 ## How the recommendation works
