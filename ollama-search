@@ -3,7 +3,7 @@
 # ollama-search
 # Search Ollama models, choose a model, then show model details
 # Recommend best local model based on system memory
-# by Thomas Chung, 2026
+# by Thomas Chung, May 6, 2026
 # https://github.com/tchung1970/ollama-search
 #
 
