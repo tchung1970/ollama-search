@@ -101,7 +101,8 @@ For example, on an 8GB system where all local gemma4 models exceed the safe limi
 ## Installation
 
 ```bash
-cp ollama-search.sh ~/bin/ollama-search
+git clone https://github.com/tchung1970/ollama-search.git
+cp ollama-search/ollama-search ~/bin/ollama-search
 chmod 755 ~/bin/ollama-search
 ```
 
