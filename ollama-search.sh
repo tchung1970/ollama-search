@@ -53,13 +53,14 @@ echo "------"
 echo "$SEARCH_PAGE"
 echo
 
-MODELS=$(python3 - "$TMP_SEARCH" "$MAX_RESULTS" <<'PY'
+MODELS=$(python3 - "$TMP_SEARCH" "$MAX_RESULTS" "$QUERY" <<'PY'
 import sys
 import re
 import html
 
 filename = sys.argv[1]
 max_results = int(sys.argv[2])
+query = sys.argv[3].lower()
 
 with open(filename, "r", encoding="utf-8", errors="ignore") as f:
     text = f.read()
@@ -70,6 +71,9 @@ models = []
 
 for match in re.finditer(r'/library/([A-Za-z0-9._-]+)', text):
     model = match.group(1)
+
+    if not model.lower().startswith(query):
+        continue
 
     if model not in models:
         models.append(model)
