@@ -72,7 +72,7 @@ Suggested model
 Recommended: gemma4:31b-cloud
 Size       : -
 Context    : 256K
-Reason     : Selected based on your system memory with a safety margin.
+Reason     : Based on your 8GB system memory, I recommend gemma4:31b-cloud.
 
 To run it
 ---------
