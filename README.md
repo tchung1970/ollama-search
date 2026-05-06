@@ -1,10 +1,6 @@
 # ollama-search
 
-A shell script to search [Ollama](https://ollama.com) models, browse available tags, and get a recommended model based on your system memory.
-
-## Why
-
-The `ollama` CLI does not have a built-in search feature. This script fills that gap by searching ollama.com directly, letting you find and evaluate models without leaving the terminal.
+A shell script to search [Ollama](https://ollama.com) models, browse available tags, and get a recommended model based on your system memory. The `ollama` CLI does not have a built-in search feature — this script fills that gap directly from the terminal.
 
 ## Features
 
