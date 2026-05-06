@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# ollama-search.sh
+# ollama-search
 # Search Ollama models, choose a model, then show model details
 # Recommend best local model based on system memory
 # by Thomas Chung
@@ -13,11 +13,11 @@ MAX_RESULTS=10
 if [ -z "$1" ]; then
   echo
   echo "Usage:"
-  echo "  ollama-search.sh <keyword>"
+  echo "  ollama-search <keyword>"
   echo
   echo "Example:"
-  echo "  ollama-search.sh gemma"
-  echo "  ollama-search.sh gpt-oss"
+  echo "  ollama-search gemma"
+  echo "  ollama-search gpt-oss"
   echo
   exit 1
 fi
